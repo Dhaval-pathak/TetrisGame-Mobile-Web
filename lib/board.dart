@@ -34,7 +34,11 @@ class _GameBoardState extends State<GameBoard> {
 
   //game over status
   bool gameOver = false;
-
+  // drag variables
+  bool isDragging = false;
+  double dragStartX = 0;
+  double dragEndX = 0;
+  double dragThreshold = 20;
   @override
   void initState() {
     // TODO: implement initState
@@ -235,78 +239,106 @@ then game is over
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Column(
-        children: [
-          Expanded(
-            child: GridView.builder(
-              itemCount: rowLength * colLength,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: rowLength),
-              itemBuilder: (context, index) {
-                //get row and col of each index
-                int row = (index / rowLength).floor();
-                int col = index % rowLength;
+      body: GestureDetector(
+        onTap: rotate,
+        onHorizontalDragStart: (DragStartDetails details) {
+          setState(() {
+            isDragging = true;
+            dragStartX = details.globalPosition.dx;
+          });
+        },
+        onHorizontalDragUpdate: (DragUpdateDetails details) {
+          setState(() {
+            dragEndX = details.globalPosition.dx;
+          });
+        },
+        onHorizontalDragEnd: (DragEndDetails details) {
+          setState(() {
+            isDragging = false;
+            double dragDistance = dragEndX - dragStartX;
 
-                // current piece
-                if (currentPiece.position.contains(index)) {
-                  return Pixel(
-                    color: currentPiece.color,
-                    child: index,
-                  );
-                }
+            if (dragDistance.abs() > dragThreshold) {
+              if (dragDistance > 0) {
+                moveRight();
+              } else {
+                moveLeft();
+              }
+            }
+          });
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: GridView.builder(
+                itemCount: rowLength * colLength,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: rowLength),
+                itemBuilder: (context, index) {
+                  //get row and col of each index
+                  int row = (index / rowLength).floor();
+                  int col = index % rowLength;
 
-                //landed piece
-                else if (gameBoard[row][col] != null) {
-                  final Tetromino? tetrominoType = gameBoard[row][col];
-                  return Pixel(
-                      color: tetrominoColors[tetrominoType], child: '');
-                }
+                  // current piece
+                  if (currentPiece.position.contains(index)) {
+                    return Pixel(
+                      color: currentPiece.color,
+                      child: index,
+                    );
+                  }
 
-                //blank piece
-                else {
-                  return Pixel(
-                    color: Colors.grey[900],
-                    child: index,
-                  );
-                }
-              },
+                  //landed piece
+                  else if (gameBoard[row][col] != null) {
+                    final Tetromino? tetrominoType = gameBoard[row][col];
+                    return Pixel(
+                        color: tetrominoColors[tetrominoType], child: '');
+                  }
+
+                  //blank piece
+                  else {
+                    return Pixel(
+                      color: Colors.grey[900],
+                      child: index,
+                    );
+                  }
+                },
+              ),
             ),
-          ),
 
-          //Score
-          Text(
-            'Score: $currentScore',
-            style: const TextStyle(color: Colors.white),
-          ),
+            //Score
+            Text(
+              'Score: $currentScore',
+              style: TextStyle(color: Colors.white),
+            ),
 
-          //Game Controllers
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // left
-              IconButton(
-                  onPressed: moveLeft,
-                  icon: const Icon(Icons.arrow_back_ios),
-                  color: Colors.white),
+            // // Game Controllers
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            //   children: [
+            //     // left
+            //     IconButton(
+            //         onPressed: moveLeft,
+            //         icon: Icon(Icons.arrow_back_ios),
+            //         color: Colors.white),
+            //
+            //     //rotate
+            //     IconButton(
+            //         onPressed: rotate,
+            //         icon: Icon(Icons.rotate_right),
+            //         color: Colors.white),
+            //
+            //     //right
+            //     IconButton(
+            //         onPressed: moveRight,
+            //         icon: Icon(Icons.arrow_forward_ios),
+            //         color: Colors.white),
+            //   ],
+            // ),
 
-              //rotate
-              IconButton(
-                  onPressed: rotate,
-                  icon: const Icon(Icons.rotate_right),
-                  color: Colors.white),
-
-              //right
-              IconButton(
-                  onPressed: moveRight,
-                  icon: const Icon(Icons.arrow_forward_ios),
-                  color: Colors.white),
-            ],
-          ),
-
-          SizedBox(
-            height: MediaQuery.of(context).size.height * 0.1,
-          )
-        ],
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.1,
+            )
+          ],
+        ),
       ),
     );
   }
@@ -318,7 +350,7 @@ then game is over
           return WillPopScope(
             onWillPop: () async => false,
             child: AlertDialog(
-              title: const Text('Game Over'),
+              title: Text('Game Over'),
               content: Text('Your Score is: $currentScore'),
               actions: [
                 ElevatedButton(
@@ -327,7 +359,7 @@ then game is over
                       resetGame();
                       Navigator.pop(context);
                     },
-                    child: const Text('Play Again'))
+                    child: Text('Play Again'))
               ],
             ),
           );
