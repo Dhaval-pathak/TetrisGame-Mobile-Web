@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:tetrisgame/piece.dart';
 import 'package:tetrisgame/pixel.dart';
 import 'package:tetrisgame/values.dart';
+import 'package:tetrisgame/widget/gameover_dialog.dart';
 
 // GAME BOARD
 // This is a 2x2 grid with null representing an empty space.
@@ -48,7 +49,7 @@ class _GameBoardState extends State<GameBoard> {
     currentPiece.initiatizePiece();
 
     //frameRefresh rate
-    Duration frameRate = const Duration(milliseconds: 600);
+    Duration frameRate = const Duration(milliseconds: 100);
     gameLoop(frameRate);
   }
 
@@ -65,7 +66,7 @@ class _GameBoardState extends State<GameBoard> {
         //check if game is over
         if (gameOver == true) {
           timer.cancel();
-          showGameOverDialog();
+          showGameOverDialog(context,currentScore,resetGame);
         }
 
         //move current piece
@@ -181,6 +182,14 @@ then game is over
     }
   }
 
+  moveDown() {
+    if (!checkCollision(Direction.down)) {
+      setState(() {
+        currentPiece.movePiece(Direction.down);
+      });
+    }
+  }
+
   //rotate
   rotate() {
     setState(() {
@@ -251,7 +260,6 @@ then game is over
                 if (currentPiece.position.contains(index)) {
                   return Pixel(
                     color: currentPiece.color,
-                    child: index,
                   );
                 }
 
@@ -259,14 +267,14 @@ then game is over
                 else if (gameBoard[row][col] != null) {
                   final Tetromino? tetrominoType = gameBoard[row][col];
                   return Pixel(
-                      color: tetrominoColors[tetrominoType], child: '');
+                    color: tetrominoColors[tetrominoType],
+                  );
                 }
 
                 //blank piece
                 else {
                   return Pixel(
                     color: Colors.grey[900],
-                    child: index,
                   );
                 }
               },
@@ -278,7 +286,9 @@ then game is over
             'Score: $currentScore',
             style: const TextStyle(color: Colors.white),
           ),
-
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.03,
+          ),
           //Game Controllers
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -302,39 +312,31 @@ then game is over
                   color: Colors.white),
             ],
           ),
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.02,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                  iconSize: 40,
+                  onPressed: moveDown,
+                  icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                  color: Colors.white),
+            ],
+          ),
 
           SizedBox(
-            height: MediaQuery.of(context).size.height * 0.1,
+            height: MediaQuery.of(context).size.height * 0.04,
           )
         ],
       ),
     );
   }
 
-  showGameOverDialog() {
-    showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return WillPopScope(
-            onWillPop: () async => false,
-            child: AlertDialog(
-              title: const Text('Game Over'),
-              content: Text('Your Score is: $currentScore'),
-              actions: [
-                ElevatedButton(
-                    onPressed: () {
-                      //reset game method
-                      resetGame();
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Play Again'))
-              ],
-            ),
-          );
-        });
-  }
 
-  resetGame() {
+
+  void resetGame() {
 //clear the game board
     gameBoard = List.generate(
       colLength,
